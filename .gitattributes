@@ -1,0 +1,2 @@
+models/*.tar.gz binary
+vendor/vosk.js binary
