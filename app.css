@@ -1,0 +1,242 @@
+:root {
+  --bg: #efe7dc;
+  --ink: #1f1a16;
+  --muted: #5f574e;
+  --paper: #fffdf8;
+  --line: #e3d8c9;
+  --accent: #9d2c22;
+  --stop: #0f5c45;
+  --danger-bg: #f8e4df;
+  --ok-bg: #e5f3ec;
+  --shadow: 0 10px 28px rgba(60, 40, 20, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  overflow-x: clip;
+  color: var(--ink);
+  background:
+    radial-gradient(900px 280px at 50% -8%, #fffaf3 0%, transparent 60%),
+    var(--bg);
+  font-family: system-ui, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+main {
+  width: min(100%, 40rem);
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding:
+    calc(16px + env(safe-area-inset-top))
+    calc(16px + env(safe-area-inset-right))
+    calc(12px + env(safe-area-inset-bottom))
+    calc(16px + env(safe-area-inset-left));
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.lede {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+#status {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+}
+
+#state-label,
+#state-detail {
+  display: block;
+}
+
+#state-label {
+  font-size: 1rem;
+}
+
+#state-detail {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+#state-detail:empty {
+  display: none;
+}
+
+.transcript-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+textarea {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 34dvh;
+  margin: 0;
+  padding: 14px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+  color: inherit;
+  font: inherit;
+  line-height: 1.45;
+  box-shadow: var(--shadow);
+  overflow-wrap: anywhere;
+}
+
+textarea:focus {
+  outline: 2px solid #c47a55;
+  outline-offset: 1px;
+}
+
+.interim {
+  min-height: 1.45em;
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+
+.tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+button {
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  color: inherit;
+  font: inherit;
+  touch-action: manipulation;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7ddd0;
+}
+
+.progress > div {
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+}
+
+.progress > div.indeterminate {
+  width: 35%;
+  animation: slide 1.1s ease-in-out infinite;
+}
+
+.dock {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding-top: 4px;
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+}
+
+.talk {
+  width: 100%;
+  min-height: 76px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.talk:disabled {
+  opacity: 0.72;
+}
+
+.talk:focus-visible,
+button:focus-visible {
+  outline: 3px solid #1f1a16;
+  outline-offset: 2px;
+}
+
+.hint {
+  margin: 8px 4px 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+body.state-listening #status {
+  background: var(--ok-bg);
+  border-color: #b7dfcc;
+}
+
+body.state-listening .talk {
+  background: var(--stop);
+}
+
+body.state-listening .talk::before {
+  content: "";
+  display: inline-block;
+  width: 0.72rem;
+  height: 0.72rem;
+  margin-right: 0.55rem;
+  border-radius: 50%;
+  background: #fff;
+  vertical-align: 0.08em;
+  animation: pulse 1.3s ease-out infinite;
+}
+
+body.state-denied #status,
+body.state-error #status {
+  background: var(--danger-bg);
+  border-color: #f0c7c0;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.85); opacity: 1; }
+  100% { transform: scale(1.35); opacity: 0.35; }
+}
+
+@keyframes slide {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.state-listening .talk::before,
+  .progress > div.indeterminate {
+    animation: none;
+  }
+}
