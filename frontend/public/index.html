@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru" translate="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="google" content="notranslate">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#efe7dc">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Диктовка">
+  <title>Диктовка</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body class="state-idle">
+  <main id="screen-dictate" hidden>
+    <header>
+      <div class="top">
+        <h1>Диктовка</h1>
+        <div class="top-actions">
+          <button type="button" id="logout" class="ghost">Выйти</button>
+          <button type="button" id="open-list" class="ghost">Идеи</button>
+        </div>
+      </div>
+      <p class="lede">Говорите — слова появляются сразу. Звук остаётся на телефоне.</p>
+    </header>
+
+    <p id="status" role="status">
+      <strong id="state-label">Ожидание</strong>
+      <span id="state-detail">Первый запуск скачает модель, около 44 МБ. Звук остаётся на телефоне, на сервер уходит текст после «Обработай».</span>
+    </p>
+
+    <section id="result" class="result" hidden>
+      <p class="kicker">Идея сохранена</p>
+      <h2 id="result-title"></h2>
+      <p id="result-body" class="prose"></p>
+      <div class="tools">
+        <button type="button" id="result-share">Поделиться</button>
+        <button type="button" id="result-list">К списку</button>
+      </div>
+    </section>
+
+    <label class="transcript-label" for="transcript">Текст</label>
+    <textarea id="transcript" rows="8" placeholder="Здесь будет текст" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+    <p id="interim" class="interim"></p>
+
+    <div class="tools">
+      <button type="button" id="copy">Копировать</button>
+      <button type="button" id="clear">Очистить</button>
+    </div>
+
+    <div id="progress" class="progress" hidden>
+      <div id="progress-bar"></div>
+    </div>
+
+    <div class="dock">
+      <button type="button" id="talk" class="talk" aria-pressed="false">Говорить</button>
+      <button type="button" id="process">Обработай</button>
+      <p class="hint">Звук остаётся на телефоне. На сервер уходит текст после «стоп» или кнопки «Обработай».</p>
+    </div>
+  </main>
+
+  <main id="screen-list" hidden>
+    <header class="top">
+      <h1>Идеи</h1>
+      <button type="button" id="back-dictate" class="ghost">К диктовке</button>
+    </header>
+    <p id="list-status" class="lede" role="status"></p>
+    <div id="idea-list" class="idea-list"></div>
+  </main>
+
+  <main id="screen-detail" hidden>
+    <button type="button" id="back-list" class="ghost">К списку</button>
+    <h1 id="detail-title" class="detail-title"></h1>
+    <p id="detail-body" class="prose"></p>
+    <details class="source">
+      <summary>Как было сказано</summary>
+      <p id="detail-source" class="prose"></p>
+    </details>
+    <div class="tools">
+      <button type="button" id="detail-share">Поделиться</button>
+      <button type="button" id="detail-delete">Удалить</button>
+    </div>
+  </main>
+
+  <div id="login" class="access">
+    <div class="access-card">
+      <h2>Вход</h2>
+      <p id="login-note">На компьютере — локальный вход. На сервере — только ваш ящик Mail.ru.</p>
+      <a id="login-dev" class="login-link" href="/api/auth/dev-login">Войти на этом компьютере</a>
+      <a id="login-mail" class="login-link mail" href="/api/auth/mailru">Войти через Mail.ru</a>
+    </div>
+  </div>
+
+  <script src="vendor/vosk.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

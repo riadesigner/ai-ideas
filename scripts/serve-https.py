@@ -11,9 +11,11 @@ import http.server
 import socket
 import ssl
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+PUBLIC = ROOT / "frontend" / "public"
 CERT_DIR = ROOT / "certs"
 HOST = "0.0.0.0"
 PORT = 8443
@@ -70,8 +72,11 @@ def ensure_cert() -> tuple[Path, Path]:
 
 def main() -> None:
     cert, key = ensure_cert()
+    if "--certs" in sys.argv:
+        print(f"{cert}\n{key}")
+        return
     handler = lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(
-        *args, directory=str(ROOT), **kwargs
+        *args, directory=str(PUBLIC), **kwargs
     )
     server = http.server.ThreadingHTTPServer((HOST, PORT), handler)
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)

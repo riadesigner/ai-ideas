@@ -15,6 +15,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html {
   overflow-x: clip;
 }
@@ -51,6 +55,23 @@ h1 {
   font-size: 1.8rem;
   line-height: 1.15;
   letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.top h1 {
+  flex: 1;
+}
+
+.top-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .lede {
@@ -163,9 +184,17 @@ button:active:not(:disabled) {
 .dock {
   position: sticky;
   bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   margin-top: auto;
   padding-top: 4px;
   background: linear-gradient(to top, var(--bg) 70%, transparent);
+}
+
+#process {
+  width: 100%;
+  font-weight: 700;
 }
 
 .talk {
@@ -203,10 +232,22 @@ body.state-listening #status {
 }
 
 body.state-listening .talk {
-  background: var(--stop);
+  min-height: 48px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 1.05rem;
 }
 
-body.state-listening .talk::before {
+body.state-listening #process {
+  min-height: 76px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--stop);
+  color: #fff;
+  font-size: 1.45rem;
+}
+
+body.state-listening #process::before {
   content: "";
   display: inline-block;
   width: 0.72rem;
@@ -216,6 +257,11 @@ body.state-listening .talk::before {
   background: #fff;
   vertical-align: 0.08em;
   animation: pulse 1.3s ease-out infinite;
+}
+
+body.state-processing #status {
+  background: #fff6e8;
+  border-color: #edd9b8;
 }
 
 body.state-denied #status,
@@ -235,8 +281,164 @@ body.state-error #status {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.state-listening .talk::before,
+  body.state-listening #process::before,
   .progress > div.indeterminate {
     animation: none;
   }
+}
+
+.result,
+.idea,
+.source,
+.access-card,
+.access form {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+}
+
+.result,
+.idea,
+.source {
+  padding: 14px;
+}
+
+.result {
+  box-shadow: var(--shadow);
+}
+
+.result h2,
+.detail-title {
+  margin: 4px 0 8px;
+  font-size: 1.35rem;
+  overflow-wrap: anywhere;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--stop);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.prose {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.idea-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.idea h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.excerpt,
+.when {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.excerpt {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.when {
+  font-size: 0.85rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.15fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.title-button {
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.source summary {
+  margin-bottom: 8px;
+}
+
+.access {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: end center;
+  padding: 16px;
+  background: rgba(31, 26, 22, 0.4);
+}
+
+.access-card,
+.access form {
+  width: min(100%, 28rem);
+  margin-bottom: calc(12px + env(safe-area-inset-bottom));
+  padding: 16px;
+}
+
+#login {
+  place-items: center;
+}
+
+.login-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  margin-top: 12px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.login-link.mail {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.access h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.access p {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.access input {
+  width: 100%;
+  min-height: 48px;
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+
+button:disabled {
+  opacity: 0.55;
 }

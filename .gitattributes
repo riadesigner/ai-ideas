@@ -1,2 +1,2 @@
-models/*.tar.gz binary
-vendor/vosk.js binary
+frontend/public/models/*.tar.gz binary
+frontend/public/vendor/vosk.js binary

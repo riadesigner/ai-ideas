@@ -1,0 +1,23 @@
+{
+  "name": "ai-ideas-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/index.js",
+    "test": "node --experimental-strip-types --test src/lib/text.test.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.16.2",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "jose": "^6.0.11",
+    "prisma": "^6.16.2"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.8",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3"
+  }
+}

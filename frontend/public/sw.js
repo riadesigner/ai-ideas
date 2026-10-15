@@ -1,25 +1,38 @@
-const CACHE = "dictation-v1";
+const MODEL_CACHE = "dictation-v1";
+const SHELL_CACHE = "dictation-shell-v2";
 const SHELL = [
   "./",
   "./index.html",
   "./app.css",
   "./app.js",
   "./audio-worklet.js",
-  "./vendor/vosk.js",
+  "./manifest.webmanifest",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/icon-maskable-192.png",
+  "./icons/icon-maskable-512.png",
+  "./icons/apple-touch-icon.png",
   "./sw.js",
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting())
+    caches.open(SHELL_CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))
-    ).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key.startsWith("dictation-shell-") && key !== SHELL_CACHE)
+            .map((key) => caches.delete(key))
+        )
+      )
+      .then(() => self.clients.claim())
   );
 });
 
@@ -29,7 +42,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin) {
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) {
     return;
   }
   event.respondWith(fromCacheOrNetwork(request, url));
@@ -40,15 +53,20 @@ function isHeavyAsset(url) {
 }
 
 async function fromCacheOrNetwork(request, url) {
-  const cache = await caches.open(CACHE);
   if (isHeavyAsset(url)) {
+    const cache = await caches.open(MODEL_CACHE);
     const cached = await cache.match(request);
     if (cached) {
       return cached;
     }
-    return fetch(request);
+    const response = await fetch(request);
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
   }
 
+  const cache = await caches.open(SHELL_CACHE);
   try {
     const response = await fetch(request);
     if (response.ok) {
