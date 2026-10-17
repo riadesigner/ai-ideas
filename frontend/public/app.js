@@ -597,6 +597,8 @@ let openedId = null;
 let deleteTimer = null;
 let pendingText = "";
 let choosing = false;
+let optionGeneration = 0;
+let optionAbort = null;
 
 document.getElementById("open-list").addEventListener("click", () => {
   showScreen("list");
@@ -653,39 +655,87 @@ function showSaved(idea) {
 }
 
 function hideOptions() {
+  optionGeneration += 1;
+  if (optionAbort) {
+    optionAbort.abort();
+    optionAbort = null;
+  }
   pendingText = "";
   choosing = false;
   optionsCard.hidden = true;
   optionList.replaceChildren();
 }
 
-function showOptions(options) {
+function optionCard(model) {
+  return [...optionList.children].find((card) => card.dataset.model === model) || null;
+}
+
+function showPending(models) {
   optionList.replaceChildren();
-  options.forEach((option) => {
+  models.forEach((model) => {
     const card = document.createElement("article");
-    card.className = "option";
-
-    const model = document.createElement("p");
-    model.className = "kicker";
-    model.textContent = option.model;
-
-    const title = document.createElement("h2");
-    title.textContent = option.title;
-
-    const body = document.createElement("p");
-    body.className = "prose";
-    body.textContent = option.body;
-
-    const choose = document.createElement("button");
-    choose.type = "button";
-    choose.textContent = "Оставить эту";
-    choose.addEventListener("click", () => chooseOption(option));
-
-    card.append(model, title, body, choose);
+    card.className = "option is-waiting";
+    card.dataset.model = model;
+    const name = document.createElement("p");
+    name.className = "kicker";
+    name.textContent = model;
+    const state = document.createElement("p");
+    state.className = "when";
+    state.textContent = "думает…";
+    card.append(name, state);
     optionList.append(card);
   });
   optionsCard.hidden = false;
   optionsCard.scrollIntoView({ block: "nearest" });
+}
+
+function showReady(option) {
+  const card = optionCard(option.model);
+  if (!card || choosing) {
+    return;
+  }
+  card.classList.remove("is-waiting");
+  const name = document.createElement("p");
+  name.className = "kicker";
+  name.textContent = `${option.model} · ${option.seconds} с`;
+  const title = document.createElement("h2");
+  title.textContent = option.title;
+  const body = document.createElement("p");
+  body.className = "prose";
+  body.textContent = option.body;
+  const choose = document.createElement("button");
+  choose.type = "button";
+  choose.textContent = "Оставить эту";
+  choose.addEventListener("click", () => chooseOption(option));
+  card.replaceChildren(name, title, body, choose);
+  noteProgress();
+}
+
+function showFailed(model, seconds) {
+  const card = optionCard(model);
+  if (!card || choosing) {
+    return;
+  }
+  card.classList.remove("is-waiting");
+  const state = card.querySelector(".when");
+  if (state) {
+    state.textContent = seconds ? `не ответила · ${seconds} с` : "не ответила";
+  }
+  noteProgress();
+}
+
+function noteProgress() {
+  if (choosing) {
+    return;
+  }
+  const waiting = optionList.querySelectorAll(".is-waiting").length;
+  const ready = optionList.querySelectorAll("button").length;
+  if (!ready) {
+    return;
+  }
+  setState("idle", waiting
+    ? "Можно выбрать готовую. Остальные ещё думают."
+    : "Выберите вариант. Текст останется на экране, пока не нажмёте «Оставить эту».");
 }
 
 function withoutStop(text) {
@@ -704,6 +754,7 @@ async function runProcess() {
   showScreen("dictate");
   hideSaved();
   hideOptions();
+  const generation = optionGeneration;
   try {
     if (listening || recognizer) {
       await stopListening({ keepState: true });
@@ -715,17 +766,36 @@ async function runProcess() {
       return;
     }
     setState("processing", "Собираю варианты…");
-    const data = await api("/api/ideas/options", { method: "POST", body: { text } });
-    const options = data.options || [];
+    const listed = await api("/api/ideas/models");
+    if (generation !== optionGeneration) {
+      return;
+    }
+    const models = Array.isArray(listed.models) ? listed.models.filter(Boolean) : [];
+    if (!models.length) {
+      setState("error", "В настройках нет моделей. Текст на экране сохранён.");
+      return;
+    }
     pendingText = text;
-    showOptions(options);
-    const failed = Array.isArray(data.failed) ? data.failed.filter(Boolean) : [];
-    const note = failed.length
-      ? `Готово вариантов: ${options.length}. Не ответили: ${failed.join(", ")}.`
-      : "Выберите вариант. Текст останется на экране, пока не нажмёте «Оставить эту».";
-    setState("idle", note);
+    optionAbort = new AbortController();
+    showPending(models);
+    const results = await Promise.all(models.map((model) => askModel(model, text, generation, optionAbort.signal)));
+    if (generation !== optionGeneration || choosing) {
+      return;
+    }
+    const ready = results.filter((item) => item === "ok").length;
+    if (!ready) {
+      setState("error", "Не получилось собрать идею. Текст на экране сохранён.");
+      return;
+    }
+    const waiting = results.filter((item) => item === "fail").length;
+    setState("idle", waiting
+      ? "Можно выбрать готовую. Остальные не ответили."
+      : "Выберите вариант. Текст останется на экране, пока не нажмёте «Оставить эту».");
   } catch (error) {
     if (error && error.name === "NeedLogin") {
+      if (optionAbort) {
+        optionAbort.abort();
+      }
       return;
     }
     const message = error && error.message ? error.message : "Не получилось собрать идею.";
@@ -764,6 +834,33 @@ async function logout() {
   showLogin();
 }
 
+async function askModel(model, text, generation, signal) {
+  try {
+    const option = await api("/api/ideas/options", {
+      method: "POST",
+      body: { text, model },
+      signal,
+    });
+    if (generation !== optionGeneration) {
+      return "drop";
+    }
+    showReady(option);
+    return "ok";
+  } catch (error) {
+    if (signal.aborted || (error && error.name === "AbortError")) {
+      return "drop";
+    }
+    if (error && error.name === "NeedLogin") {
+      throw error;
+    }
+    if (generation !== optionGeneration) {
+      return "drop";
+    }
+    showFailed(model, error && error.seconds);
+    return "fail";
+  }
+}
+
 async function api(path, options = {}) {
   let response;
   try {
@@ -772,8 +869,12 @@ async function api(path, options = {}) {
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: options.signal,
     });
   } catch (error) {
+    if (error && error.name === "AbortError") {
+      throw error;
+    }
     throw new Error("Сервер не ответил. Проверьте, что он запущен, и повторите.");
   }
   if (response.status === 401) {
@@ -785,9 +886,13 @@ async function api(path, options = {}) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const timedOut = response.status === 502 || response.status === 504;
-    throw new Error(data.error || (timedOut
+    const failure = new Error(data.error || (timedOut
       ? "Сервер не дождался ответа моделей. Попробуйте ещё раз."
       : "Сервер не смог выполнить запрос."));
+    if (typeof data.seconds === "number") {
+      failure.seconds = data.seconds;
+    }
+    throw failure;
   }
   return data;
 }
@@ -825,6 +930,10 @@ async function chooseOption(option) {
     return;
   }
   choosing = true;
+  if (optionAbort) {
+    optionAbort.abort();
+    optionAbort = null;
+  }
   optionList.querySelectorAll("button").forEach((button) => {
     button.disabled = true;
   });

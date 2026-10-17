@@ -1,5 +1,5 @@
 const MODEL_CACHE = "dictation-v1";
-const SHELL_CACHE = "dictation-shell-v3";
+const SHELL_CACHE = "dictation-shell-v4";
 const SHELL = [
   "./",
   "./index.html",

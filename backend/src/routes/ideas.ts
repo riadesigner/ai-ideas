@@ -3,7 +3,7 @@ import { prisma } from "../lib/prisma.js";
 import { prepareDictation } from "../lib/text.js";
 import type { AuthedRequest } from "../middleware/auth.js";
 import { requireOwner } from "../middleware/auth.js";
-import { summarizeAll } from "../services/summarize.js";
+import { knownModels, summarizeModel } from "../services/summarize.js";
 
 function cleanField(value: unknown, max: number): string {
   return String(value || "").trim().slice(0, max);
@@ -13,14 +13,23 @@ export const ideasRouter = Router();
 
 ideasRouter.use(requireOwner);
 
+ideasRouter.get("/models", (_req, res) => {
+  res.json({ models: knownModels() });
+});
+
 ideasRouter.post("/options", async (req: AuthedRequest, res) => {
   const text = prepareDictation(req.body && req.body.text);
+  const model = cleanField(req.body && req.body.model, 120);
   if (!text) {
     res.status(400).json({ error: "Нет текста для идеи." });
     return;
   }
   if (text.length > 20000) {
     res.status(400).json({ error: "Текст слишком длинный." });
+    return;
+  }
+  if (!model || !knownModels().includes(model)) {
+    res.status(400).json({ error: "Такой модели нет в настройках." });
     return;
   }
   const controller = new AbortController();
@@ -30,7 +39,7 @@ ideasRouter.post("/options", async (req: AuthedRequest, res) => {
     }
   });
   try {
-    const result = await summarizeAll(text, controller.signal);
+    const result = await summarizeModel(model, text, controller.signal);
     if (res.writableEnded || controller.signal.aborted) {
       return;
     }
@@ -39,10 +48,12 @@ ideasRouter.post("/options", async (req: AuthedRequest, res) => {
     if (res.writableEnded || controller.signal.aborted) {
       return;
     }
-    const status = (error as { status?: number }).status === 503 ? 503 : 502;
-    console.error("summarize", status);
+    const named = error as { status?: number; seconds?: number };
+    const status = named.status === 503 ? 503 : 502;
     res.status(status).json({
-      error: "Не получилось собрать идею. Текст не сохранён, попробуйте ещё раз.",
+      error: "Эта модель не ответила.",
+      model,
+      seconds: named.seconds,
     });
   }
 });

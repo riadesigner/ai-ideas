@@ -12,39 +12,39 @@ const SYSTEM = [
   'Ответ — только JSON: {"title":"...","body":"..."}.',
 ].join("\n");
 
-export type Summary = { model: string; title: string; body: string };
+export type Summary = { model: string; title: string; body: string; seconds: number };
 
 const MODEL_TIMEOUT_MS = 150_000;
 
-export async function summarizeAll(text: string, signal?: AbortSignal): Promise<{ options: Summary[]; failed: string[] }> {
+export function knownModels(): string[] {
+  return env.llmModels;
+}
+
+export async function summarizeModel(model: string, text: string, signal?: AbortSignal): Promise<Summary> {
   if (!env.llmApiKey) {
     const error = new Error("На сервере не задан ключ модели.");
     (error as Error & { status?: number }).status = 503;
     throw error;
   }
-  const models = env.llmModels;
-  const settled = await Promise.allSettled(models.map((model) => summarizeOne(model, text, signal)));
-  const options: Summary[] = [];
-  const failed: string[] = [];
-  settled.forEach((result, index) => {
-    if (result.status === "fulfilled") {
-      options.push(result.value);
-      return;
+  const started = Date.now();
+  try {
+    const summary = await summarizeOne(model, text, signal);
+    return { ...summary, seconds: secondsSince(started) };
+  } catch (error) {
+    const named = error as Error & { status?: number; seconds?: number };
+    named.seconds = secondsSince(started);
+    if (named.name !== "AbortError") {
+      console.error("summarize", model, named.name || "error");
     }
-    failed.push(models[index]);
-    const reason = result.reason;
-    const name = reason instanceof Error ? reason.name : "error";
-    console.error("summarize", models[index], name);
-  });
-  if (!options.length) {
-    const error = new Error("Модель не ответила.");
-    (error as Error & { status?: number }).status = 502;
-    throw error;
+    throw named;
   }
-  return { options, failed };
 }
 
-async function summarizeOne(model: string, text: string, signal?: AbortSignal): Promise<Summary> {
+function secondsSince(started: number): number {
+  return Math.max(1, Math.round((Date.now() - started) / 1000));
+}
+
+async function summarizeOne(model: string, text: string, signal?: AbortSignal): Promise<Omit<Summary, "seconds">> {
   const payload = {
     model,
     temperature: 0.2,
