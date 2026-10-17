@@ -33,7 +33,7 @@ export const env = {
   mailruRedirectUri: process.env.MAILRU_REDIRECT_URI?.trim() ?? "",
   llmBaseUrl: (process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/$/, ""),
   llmApiKey: (process.env.OPENAI_API_KEY ?? "").trim(),
-  llmModels: parseModelList(process.env.LLM_MODELS, process.env.OPENAI_MODEL),
+  llmModels: parseModelList(process.env.OPENAI_MODEL),
 };
 
 export function isLocalOrigin(origin: string): boolean {

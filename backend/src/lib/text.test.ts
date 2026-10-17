@@ -24,14 +24,18 @@ test("достаёт JSON, если модель добавила фразу в�
 });
 
 test("берёт не больше трёх разных моделей", () => {
-  assert.deepEqual(parseModelList(" gpt-4o-mini, gpt-4o ,gpt-4o-mini, claude ", ""), [
+  assert.deepEqual(parseModelList(" gpt-4o-mini, gpt-4o ,gpt-4o-mini, claude "), [
     "gpt-4o-mini",
     "gpt-4o",
     "claude",
   ]);
-  assert.deepEqual(parseModelList("a,b,c,d", "fallback"), ["a", "b", "c"]);
-  assert.deepEqual(parseModelList("", "  gpt-4o-mini "), ["gpt-4o-mini"]);
-  assert.deepEqual(parseModelList("  ", ""), ["gpt-4o-mini"]);
+  assert.deepEqual(parseModelList("a,b,c,d"), ["a", "b", "c"]);
+  assert.deepEqual(parseModelList("deepseek/deepseek-r1, anthropic/claude-haiku-5.5, qwen/qwen3.6-plus"), [
+    "deepseek/deepseek-r1",
+    "anthropic/claude-haiku-5.5",
+    "qwen/qwen3.6-plus",
+  ]);
+  assert.deepEqual(parseModelList("  "), ["gpt-4o-mini"]);
 });
 
 test("отклоняет пустой ответ", () => {

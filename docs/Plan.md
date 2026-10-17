@@ -38,7 +38,7 @@
 ## 4. API
 
 - `GET /api/health` — жив ли сервер и база
-- `POST /api/ideas/options` — тело `{ "text": "..." }`. Сервер параллельно спрашивает до трёх моделей из `LLM_MODELS` и возвращает `{ "options": [{ "model", "title", "body" }], "failed": ["..."] }`. В базу ничего не пишет
+- `POST /api/ideas/options` — тело `{ "text": "..." }`. Сервер параллельно спрашивает до трёх моделей из `OPENAI_MODEL` и возвращает `{ "options": [{ "model", "title", "body" }], "failed": ["..."] }`. В базу ничего не пишет
 - `POST /api/ideas` — тело `{ "text", "title", "body", "model" }`. Сохраняет выбранный вариант без нового запроса к модели
 - `GET /api/ideas` — список по `sortOrder`
 - `PUT /api/ideas/order` — тело `{ "ids": ["...", "..."] }`, новый порядок целиком

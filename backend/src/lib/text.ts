@@ -1,6 +1,6 @@
 const STOP_TAIL = /(?:^|\s+)стоп[.!?…]*$/iu;
 
-export function parseModelList(raw: string | undefined, fallback: string | undefined): string[] {
+function splitModels(raw: string | undefined): string[] {
   const unique: string[] = [];
   for (const name of String(raw || "").split(",")) {
     const trimmed = name.trim();
@@ -12,11 +12,12 @@ export function parseModelList(raw: string | undefined, fallback: string | undef
       break;
     }
   }
-  if (unique.length) {
-    return unique;
-  }
-  const single = String(fallback || "").trim();
-  return [single || "gpt-4o-mini"];
+  return unique;
+}
+
+export function parseModelList(raw: string | undefined): string[] {
+  const listed = splitModels(raw);
+  return listed.length ? listed : ["gpt-4o-mini"];
 }
 
 export function prepareDictation(input: unknown): string {

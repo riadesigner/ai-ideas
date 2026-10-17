@@ -50,6 +50,7 @@ app.use((error: { type?: string }, _req: express.Request, res: express.Response,
 
 const server = app.listen(env.port, "0.0.0.0", () => {
   console.log(`api ${env.port}`);
+  console.log(`models ${env.llmModels.join(", ")}`);
 });
 
 async function shutdown() {
