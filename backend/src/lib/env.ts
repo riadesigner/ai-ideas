@@ -1,3 +1,5 @@
+import { parseModelList } from "./text.js";
+
 function bool(name: string, fallback = false): boolean {
   const raw = process.env[name];
   if (raw == null || raw === "") {
@@ -31,7 +33,7 @@ export const env = {
   mailruRedirectUri: process.env.MAILRU_REDIRECT_URI?.trim() ?? "",
   llmBaseUrl: (process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/$/, ""),
   llmApiKey: (process.env.OPENAI_API_KEY ?? "").trim(),
-  llmModel: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
+  llmModels: parseModelList(process.env.LLM_MODELS, process.env.OPENAI_MODEL),
 };
 
 export function isLocalOrigin(origin: string): boolean {

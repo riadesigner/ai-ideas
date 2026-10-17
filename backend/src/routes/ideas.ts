@@ -3,14 +3,17 @@ import { prisma } from "../lib/prisma.js";
 import { prepareDictation } from "../lib/text.js";
 import type { AuthedRequest } from "../middleware/auth.js";
 import { requireOwner } from "../middleware/auth.js";
-import { summarize } from "../services/summarize.js";
+import { summarizeAll } from "../services/summarize.js";
+
+function cleanField(value: unknown, max: number): string {
+  return String(value || "").trim().slice(0, max);
+}
 
 export const ideasRouter = Router();
 
 ideasRouter.use(requireOwner);
 
-ideasRouter.post("/", async (req: AuthedRequest, res) => {
-  const userId = req.authUser!.id;
+ideasRouter.post("/options", async (req: AuthedRequest, res) => {
   const text = prepareDictation(req.body && req.body.text);
   if (!text) {
     res.status(400).json({ error: "Нет текста для идеи." });
@@ -20,15 +23,34 @@ ideasRouter.post("/", async (req: AuthedRequest, res) => {
     res.status(400).json({ error: "Текст слишком длинный." });
     return;
   }
-  let summary: { title: string; body: string };
   try {
-    summary = await summarize(text);
+    const result = await summarizeAll(text);
+    res.json(result);
   } catch (error) {
     const status = (error as { status?: number }).status === 503 ? 503 : 502;
     console.error("summarize", status);
     res.status(status).json({
       error: "Не получилось собрать идею. Текст не сохранён, попробуйте ещё раз.",
     });
+  }
+});
+
+ideasRouter.post("/", async (req: AuthedRequest, res) => {
+  const userId = req.authUser!.id;
+  const text = prepareDictation(req.body && req.body.text);
+  const title = cleanField(req.body && req.body.title, 80);
+  const body = cleanField(req.body && req.body.body, 20000);
+  const model = cleanField(req.body && req.body.model, 120);
+  if (!text) {
+    res.status(400).json({ error: "Нет текста для идеи." });
+    return;
+  }
+  if (text.length > 20000) {
+    res.status(400).json({ error: "Текст слишком длинный." });
+    return;
+  }
+  if (!title || !body) {
+    res.status(400).json({ error: "Сначала выберите один из вариантов." });
     return;
   }
   try {
@@ -42,9 +64,10 @@ ideasRouter.post("/", async (req: AuthedRequest, res) => {
         data: {
           id: crypto.randomUUID(),
           userId,
-          title: summary.title,
-          body: summary.body,
+          title,
+          body,
           sourceText: text,
+          model,
           sortOrder,
         },
       });

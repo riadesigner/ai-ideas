@@ -1,5 +1,24 @@
 const STOP_TAIL = /(?:^|\s+)стоп[.!?…]*$/iu;
 
+export function parseModelList(raw: string | undefined, fallback: string | undefined): string[] {
+  const unique: string[] = [];
+  for (const name of String(raw || "").split(",")) {
+    const trimmed = name.trim();
+    if (!trimmed || unique.includes(trimmed)) {
+      continue;
+    }
+    unique.push(trimmed);
+    if (unique.length === 3) {
+      break;
+    }
+  }
+  if (unique.length) {
+    return unique;
+  }
+  const single = String(fallback || "").trim();
+  return [single || "gpt-4o-mini"];
+}
+
 export function prepareDictation(input: unknown): string {
   return String(input || "").trim().replace(STOP_TAIL, "").trim();
 }

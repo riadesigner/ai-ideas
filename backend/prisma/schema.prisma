@@ -21,6 +21,7 @@ model Idea {
   title      String
   body       String
   sourceText String
+  model      String   @default("")
   sortOrder  Int
   createdAt  DateTime @default(now())
 

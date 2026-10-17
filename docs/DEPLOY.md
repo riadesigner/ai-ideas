@@ -14,7 +14,7 @@ cp .env.example .env
 # NODE_ENV=production
 # DEV_AUTH_BYPASS=0
 # MAILRU_REDIRECT_URI=https://ai-ideas.riadesign.ru/api/auth/mailru/callback
-# POSTGRES_PASSWORD, JWT_SECRET, OWNER_EMAILS, OPENAI_API_KEY
+# POSTGRES_PASSWORD, JWT_SECRET, OWNER_EMAILS, OPENAI_API_KEY, LLM_MODELS
 # MAILRU_CLIENT_ID, MAILRU_CLIENT_SECRET
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```

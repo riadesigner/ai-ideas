@@ -587,12 +587,16 @@ function setState(next, detail) {
 }
 
 const resultCard = document.getElementById("result");
+const optionsCard = document.getElementById("options");
+const optionList = document.getElementById("option-list");
 const listStatus = document.getElementById("list-status");
 const ideaList = document.getElementById("idea-list");
 const detailDelete = document.getElementById("detail-delete");
 let ideas = [];
 let openedId = null;
 let deleteTimer = null;
+let pendingText = "";
+let choosing = false;
 
 document.getElementById("open-list").addEventListener("click", () => {
   showScreen("list");
@@ -610,6 +614,13 @@ document.getElementById("result-share").addEventListener("click", () => {
 document.getElementById("detail-share").addEventListener("click", () => {
   const idea = ideas.find((item) => item.id === openedId);
   if (idea) shareIdea(idea);
+});
+document.getElementById("options-dismiss").addEventListener("click", () => {
+  if (choosing) {
+    return;
+  }
+  hideOptions();
+  setState("idle", "Текст на экране. Можно поправить и собрать снова.");
 });
 document.getElementById("logout").addEventListener("click", logout);
 ideaList.addEventListener("click", onIdeaClick);
@@ -632,10 +643,49 @@ function hideSaved() {
 
 function showSaved(idea) {
   savedIdea = idea;
+  const resultModel = document.getElementById("result-model");
+  resultModel.textContent = idea.model || "";
+  resultModel.hidden = !idea.model;
   document.getElementById("result-title").textContent = idea.title;
   document.getElementById("result-body").textContent = idea.body;
   resultCard.hidden = false;
   resultCard.scrollIntoView({ block: "nearest" });
+}
+
+function hideOptions() {
+  pendingText = "";
+  choosing = false;
+  optionsCard.hidden = true;
+  optionList.replaceChildren();
+}
+
+function showOptions(options) {
+  optionList.replaceChildren();
+  options.forEach((option) => {
+    const card = document.createElement("article");
+    card.className = "option";
+
+    const model = document.createElement("p");
+    model.className = "kicker";
+    model.textContent = option.model;
+
+    const title = document.createElement("h2");
+    title.textContent = option.title;
+
+    const body = document.createElement("p");
+    body.className = "prose";
+    body.textContent = option.body;
+
+    const choose = document.createElement("button");
+    choose.type = "button";
+    choose.textContent = "Оставить эту";
+    choose.addEventListener("click", () => chooseOption(option));
+
+    card.append(model, title, body, choose);
+    optionList.append(card);
+  });
+  optionsCard.hidden = false;
+  optionsCard.scrollIntoView({ block: "nearest" });
 }
 
 function withoutStop(text) {
@@ -653,6 +703,7 @@ function beginProcess() {
 async function runProcess() {
   showScreen("dictate");
   hideSaved();
+  hideOptions();
   try {
     if (listening || recognizer) {
       await stopListening({ keepState: true });
@@ -663,11 +714,16 @@ async function runProcess() {
       setState("idle", "Пока нечего собирать. Сначала скажите мысль.");
       return;
     }
-    setState("processing", "Собираю идею…");
-    const idea = await api("/api/ideas", { method: "POST", body: { text } });
-    transcript.value = "";
-    showSaved(idea);
-    setState("idle", "Идея сохранена. Можно диктовать следующую.");
+    setState("processing", "Собираю три варианта…");
+    const data = await api("/api/ideas/options", { method: "POST", body: { text } });
+    const options = data.options || [];
+    pendingText = text;
+    showOptions(options);
+    const failed = Array.isArray(data.failed) ? data.failed.filter(Boolean) : [];
+    const note = failed.length
+      ? `Готово вариантов: ${options.length}. Не ответили: ${failed.join(", ")}.`
+      : "Выберите вариант. Текст останется на экране, пока не нажмёте «Оставить эту».";
+    setState("idle", note);
   } catch (error) {
     if (error && error.name === "NeedLogin") {
       return;
@@ -761,6 +817,41 @@ async function boot() {
 
 boot();
 
+async function chooseOption(option) {
+  if (choosing || !pendingText) {
+    return;
+  }
+  choosing = true;
+  optionList.querySelectorAll("button").forEach((button) => {
+    button.disabled = true;
+  });
+  try {
+    const idea = await api("/api/ideas", {
+      method: "POST",
+      body: {
+        text: pendingText,
+        title: option.title,
+        body: option.body,
+        model: option.model,
+      },
+    });
+    transcript.value = "";
+    hideOptions();
+    showSaved(idea);
+    setState("idle", "Идея сохранена. Можно диктовать следующую.");
+  } catch (error) {
+    choosing = false;
+    optionList.querySelectorAll("button").forEach((button) => {
+      button.disabled = false;
+    });
+    if (error && error.name === "NeedLogin") {
+      return;
+    }
+    const message = error && error.message ? error.message : "Не получилось сохранить идею.";
+    setState("error", `${message} Текст на экране сохранён.`);
+  }
+}
+
 async function loadIdeas() {
   listStatus.textContent = "Загружаю идеи…";
   try {
@@ -803,7 +894,7 @@ function renderIdeas() {
 
     const when = document.createElement("p");
     when.className = "when";
-    when.textContent = formatWhen(idea.createdAt);
+    when.textContent = idea.model ? `${formatWhen(idea.createdAt)} · ${idea.model}` : formatWhen(idea.createdAt);
 
     const row = document.createElement("div");
     row.className = "row";
@@ -856,6 +947,9 @@ function onIdeaClick(event) {
 function openDetail(idea) {
   openedId = idea.id;
   document.getElementById("detail-title").textContent = idea.title;
+  const detailModel = document.getElementById("detail-model");
+  detailModel.textContent = idea.model || "";
+  detailModel.hidden = !idea.model;
   document.getElementById("detail-body").textContent = idea.body;
   document.getElementById("detail-source").textContent = idea.sourceText;
   detailDelete.dataset.armed = "0";

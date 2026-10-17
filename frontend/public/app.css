@@ -289,6 +289,7 @@ body.state-error #status {
 
 .result,
 .idea,
+.option,
 .source,
 .access-card,
 .access form {
@@ -299,6 +300,7 @@ body.state-error #status {
 
 .result,
 .idea,
+.option,
 .source {
   padding: 14px;
 }
@@ -319,6 +321,29 @@ body.state-error #status {
   color: var(--stop);
   font-size: 0.85rem;
   font-weight: 700;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.option h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  overflow-wrap: anywhere;
+}
+
+.option button,
+#options-dismiss {
+  width: 100%;
 }
 
 .prose {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseModelContent, prepareDictation } from "./text.ts";
+import { parseModelContent, parseModelList, prepareDictation } from "./text.ts";
 
 test("вырезает стоп только в конце фразы", () => {
   assert.equal(prepareDictation("хочу стол стоп"), "хочу стол");
@@ -21,6 +21,17 @@ test("достаёт JSON, если модель добавила фразу в�
   const parsed = parseModelContent('Готово: {"title":"Короткое","body":"Одна мысль."} конец');
   assert.equal(parsed.title, "Короткое");
   assert.equal(parsed.body, "Одна мысль.");
+});
+
+test("берёт не больше трёх разных моделей", () => {
+  assert.deepEqual(parseModelList(" gpt-4o-mini, gpt-4o ,gpt-4o-mini, claude ", ""), [
+    "gpt-4o-mini",
+    "gpt-4o",
+    "claude",
+  ]);
+  assert.deepEqual(parseModelList("a,b,c,d", "fallback"), ["a", "b", "c"]);
+  assert.deepEqual(parseModelList("", "  gpt-4o-mini "), ["gpt-4o-mini"]);
+  assert.deepEqual(parseModelList("  ", ""), ["gpt-4o-mini"]);
 });
 
 test("отклоняет пустой ответ", () => {

@@ -32,8 +32,15 @@
       <span id="state-detail">Первый запуск скачает модель, около 44 МБ. Звук остаётся на телефоне, на сервер уходит текст после «Обработай».</span>
     </p>
 
+    <section id="options" class="options" hidden>
+      <p class="kicker">Выберите вариант</p>
+      <div id="option-list"></div>
+      <button type="button" id="options-dismiss">Ни одну, оставить текст</button>
+    </section>
+
     <section id="result" class="result" hidden>
       <p class="kicker">Идея сохранена</p>
+      <p id="result-model" class="when"></p>
       <h2 id="result-title"></h2>
       <p id="result-body" class="prose"></p>
       <div class="tools">
@@ -74,6 +81,7 @@
   <main id="screen-detail" hidden>
     <button type="button" id="back-list" class="ghost">К списку</button>
     <h1 id="detail-title" class="detail-title"></h1>
+    <p id="detail-model" class="when"></p>
     <p id="detail-body" class="prose"></p>
     <details class="source">
       <summary>Как было сказано</summary>

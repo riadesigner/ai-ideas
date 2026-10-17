@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Idea" ADD COLUMN "model" TEXT NOT NULL DEFAULT '';

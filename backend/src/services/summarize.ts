@@ -12,14 +12,37 @@ const SYSTEM = [
   'Ответ — только JSON: {"title":"...","body":"..."}.',
 ].join("\n");
 
-export async function summarize(text: string): Promise<{ title: string; body: string }> {
+export type Summary = { model: string; title: string; body: string };
+
+export async function summarizeAll(text: string): Promise<{ options: Summary[]; failed: string[] }> {
   if (!env.llmApiKey) {
     const error = new Error("На сервере не задан ключ модели.");
     (error as Error & { status?: number }).status = 503;
     throw error;
   }
+  const models = env.llmModels;
+  const settled = await Promise.allSettled(models.map((model) => summarizeOne(model, text)));
+  const options: Summary[] = [];
+  const failed: string[] = [];
+  settled.forEach((result, index) => {
+    if (result.status === "fulfilled") {
+      options.push(result.value);
+      return;
+    }
+    failed.push(models[index]);
+    console.error("summarize", models[index]);
+  });
+  if (!options.length) {
+    const error = new Error("Модель не ответила.");
+    (error as Error & { status?: number }).status = 502;
+    throw error;
+  }
+  return { options, failed };
+}
+
+async function summarizeOne(model: string, text: string): Promise<Summary> {
   const payload = {
-    model: env.llmModel,
+    model,
     temperature: 0.2,
     messages: [
       { role: "system", content: SYSTEM },
@@ -31,15 +54,14 @@ export async function summarize(text: string): Promise<{ title: string; body: st
     response = await postCompletion(payload);
   }
   if (!response.ok) {
-    const error = new Error("Модель не ответила.");
-    (error as Error & { status?: number }).status = 502;
-    throw error;
+    throw new Error("Модель не ответила.");
   }
   const data = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
   };
   const content = data.choices?.[0]?.message?.content ?? "";
-  return parseModelContent(content);
+  const summary = parseModelContent(content);
+  return { model, ...summary };
 }
 
 function postCompletion(payload: unknown): Promise<Response> {
