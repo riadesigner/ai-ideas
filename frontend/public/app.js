@@ -643,13 +643,52 @@ function hideSaved() {
   resultCard.hidden = true;
 }
 
+function isSubhead(line) {
+  const text = line.trim();
+  if (text.length < 3 || text.length > 48 || !text.endsWith(":")) {
+    return false;
+  }
+  const name = text.slice(0, -1).trim();
+  return Boolean(name) && !name.includes(":") && !/[.!?]/.test(name);
+}
+
+function fillNote(element, text) {
+  element.replaceChildren();
+  const lines = String(text || "").replace(/\r\n/g, "\n").split("\n");
+  let paragraph = [];
+  const flush = () => {
+    const value = paragraph.join("\n").trim();
+    paragraph = [];
+    if (!value) {
+      return;
+    }
+    const block = document.createElement("p");
+    block.textContent = value;
+    element.append(block);
+  };
+  lines.forEach((line) => {
+    if (!line.trim()) {
+      flush();
+      return;
+    }
+    if (isSubhead(line) && paragraph.length === 0) {
+      const heading = document.createElement("h3");
+      heading.textContent = line.trim();
+      element.append(heading);
+      return;
+    }
+    paragraph.push(line.trim());
+  });
+  flush();
+}
+
 function showSaved(idea) {
   savedIdea = idea;
   const resultModel = document.getElementById("result-model");
   resultModel.textContent = idea.model || "";
   resultModel.hidden = !idea.model;
   document.getElementById("result-title").textContent = idea.title;
-  document.getElementById("result-body").textContent = idea.body;
+  fillNote(document.getElementById("result-body"), idea.body);
   resultCard.hidden = false;
   resultCard.scrollIntoView({ block: "nearest" });
 }
@@ -700,9 +739,9 @@ function showReady(option) {
   name.textContent = `${option.model} · ${option.seconds} с`;
   const title = document.createElement("h2");
   title.textContent = option.title;
-  const body = document.createElement("p");
-  body.className = "prose";
-  body.textContent = option.body;
+  const body = document.createElement("div");
+  body.className = "note";
+  fillNote(body, option.body);
   const choose = document.createElement("button");
   choose.type = "button";
   choose.textContent = "Оставить эту";
@@ -1062,7 +1101,7 @@ function openDetail(idea) {
   const detailModel = document.getElementById("detail-model");
   detailModel.textContent = idea.model || "";
   detailModel.hidden = !idea.model;
-  document.getElementById("detail-body").textContent = idea.body;
+  fillNote(document.getElementById("detail-body"), idea.body);
   document.getElementById("detail-source").textContent = idea.sourceText;
   detailDelete.dataset.armed = "0";
   detailDelete.textContent = "Удалить";
