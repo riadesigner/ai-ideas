@@ -14,14 +14,16 @@ const SYSTEM = [
 
 export type Summary = { model: string; title: string; body: string };
 
-export async function summarizeAll(text: string): Promise<{ options: Summary[]; failed: string[] }> {
+const MODEL_TIMEOUT_MS = 150_000;
+
+export async function summarizeAll(text: string, signal?: AbortSignal): Promise<{ options: Summary[]; failed: string[] }> {
   if (!env.llmApiKey) {
     const error = new Error("На сервере не задан ключ модели.");
     (error as Error & { status?: number }).status = 503;
     throw error;
   }
   const models = env.llmModels;
-  const settled = await Promise.allSettled(models.map((model) => summarizeOne(model, text)));
+  const settled = await Promise.allSettled(models.map((model) => summarizeOne(model, text, signal)));
   const options: Summary[] = [];
   const failed: string[] = [];
   settled.forEach((result, index) => {
@@ -30,7 +32,9 @@ export async function summarizeAll(text: string): Promise<{ options: Summary[]; 
       return;
     }
     failed.push(models[index]);
-    console.error("summarize", models[index]);
+    const reason = result.reason;
+    const name = reason instanceof Error ? reason.name : "error";
+    console.error("summarize", models[index], name);
   });
   if (!options.length) {
     const error = new Error("Модель не ответила.");
@@ -40,7 +44,7 @@ export async function summarizeAll(text: string): Promise<{ options: Summary[]; 
   return { options, failed };
 }
 
-async function summarizeOne(model: string, text: string): Promise<Summary> {
+async function summarizeOne(model: string, text: string, signal?: AbortSignal): Promise<Summary> {
   const payload = {
     model,
     temperature: 0.2,
@@ -49,9 +53,9 @@ async function summarizeOne(model: string, text: string): Promise<Summary> {
       { role: "user", content: text },
     ],
   };
-  let response = await postCompletion({ ...payload, response_format: { type: "json_object" } });
+  let response = await postCompletion({ ...payload, response_format: { type: "json_object" } }, signal);
   if (response.status === 400) {
-    response = await postCompletion(payload);
+    response = await postCompletion(payload, signal);
   }
   if (!response.ok) {
     throw new Error("Модель не ответила.");
@@ -59,12 +63,18 @@ async function summarizeOne(model: string, text: string): Promise<Summary> {
   const data = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
   };
-  const content = data.choices?.[0]?.message?.content ?? "";
+  const content = stripThink(data.choices?.[0]?.message?.content ?? "");
   const summary = parseModelContent(content);
   return { model, ...summary };
 }
 
-function postCompletion(payload: unknown): Promise<Response> {
+function stripThink(content: string): string {
+  return content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+}
+
+function postCompletion(payload: unknown, parent?: AbortSignal): Promise<Response> {
+  const timeout = AbortSignal.timeout(MODEL_TIMEOUT_MS);
+  const signal = parent ? AbortSignal.any([parent, timeout]) : timeout;
   return fetch(`${env.llmBaseUrl}/chat/completions`, {
     method: "POST",
     headers: {
@@ -72,6 +82,6 @@ function postCompletion(payload: unknown): Promise<Response> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(90000),
+    signal,
   });
 }

@@ -29,6 +29,8 @@ test("берёт не больше трёх разных моделей", () => 
     "gpt-4o",
     "claude",
   ]);
+  assert.deepEqual(parseModelList("only-one"), ["only-one"]);
+  assert.deepEqual(parseModelList("one, two"), ["one", "two"]);
   assert.deepEqual(parseModelList("a,b,c,d"), ["a", "b", "c"]);
   assert.deepEqual(parseModelList("deepseek/deepseek-r1, anthropic/claude-haiku-5.5, qwen/qwen3.6-plus"), [
     "deepseek/deepseek-r1",

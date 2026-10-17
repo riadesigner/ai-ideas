@@ -23,10 +23,22 @@ ideasRouter.post("/options", async (req: AuthedRequest, res) => {
     res.status(400).json({ error: "Текст слишком длинный." });
     return;
   }
+  const controller = new AbortController();
+  res.on("close", () => {
+    if (!res.writableFinished) {
+      controller.abort();
+    }
+  });
   try {
-    const result = await summarizeAll(text);
+    const result = await summarizeAll(text, controller.signal);
+    if (res.writableEnded || controller.signal.aborted) {
+      return;
+    }
     res.json(result);
   } catch (error) {
+    if (res.writableEnded || controller.signal.aborted) {
+      return;
+    }
     const status = (error as { status?: number }).status === 503 ? 503 : 502;
     console.error("summarize", status);
     res.status(status).json({

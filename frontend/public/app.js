@@ -714,7 +714,7 @@ async function runProcess() {
       setState("idle", "Пока нечего собирать. Сначала скажите мысль.");
       return;
     }
-    setState("processing", "Собираю три варианта…");
+    setState("processing", "Собираю варианты…");
     const data = await api("/api/ideas/options", { method: "POST", body: { text } });
     const options = data.options || [];
     pendingText = text;
@@ -784,7 +784,10 @@ async function api(path, options = {}) {
   }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.error || "Сервер не смог выполнить запрос.");
+    const timedOut = response.status === 502 || response.status === 504;
+    throw new Error(data.error || (timedOut
+      ? "Сервер не дождался ответа моделей. Попробуйте ещё раз."
+      : "Сервер не смог выполнить запрос."));
   }
   return data;
 }
